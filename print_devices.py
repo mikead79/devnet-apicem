@@ -20,7 +20,7 @@ devices_list = []
 i = 0
 for device in response_json["response"]:
     i += 1
-    host = [i, device["type"], device["managementIpAddress"]]
+    host = [i, device["type"], device["hostname"], device["managementIpAddress"]]
     devices_list.append(host)
-table_header = ["Number", "Type", "IP"]
+table_header = ["Number", "Type", "Hostname", "IP"]
 print(tabulate(devices_list, table_header))
