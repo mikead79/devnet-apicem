@@ -28,6 +28,31 @@ def get_flowId(source, destination):
         flowAnalysisId = response_json["response"]["flowAnalysisId"]
     return flowAnalysisId
 
+def print_flow(flowId):
+    api_url = "https://devnetsbx-netacad-apicem-3.cisco.com/api/v1/flow-analysis/"
+    api_url += flowId
+    ticket = get_ticket()
+    headers = {
+     "content-type": "application/json",
+     "Accept": "application/json",
+     "X-Auth-Token": ticket
+    }
+    body_json = {
+        "flowAnalysisId": flowId
+        }
+    resp = requests.get(api_url,json.dumps(body_json), headers=headers,verify=False)
+    response_json = resp.json()
+    while response_json["response"]["request"]["status"] != "COMPLETED":
+        resp = requests.get(api_url,json.dumps(body_json), headers=headers,verify=False)
+        response_json = resp.json()
+        if resp.status_code != 202 and resp.status_code != 200:
+            raise Exception("Status code does not equal 200. Response text: " + resp.text)
+    route = []
+    for node in response_json["response"]["networkElementsInfo"]:
+        route.append(node["ip"])
+    print(route)
+
+
 print("Hosts:")
 print_hosts()
 print("Network devices:")
@@ -44,4 +69,5 @@ while not valid_route:
         valid_route = True
     
 print(f"The flow id is {flow_id}")
+print_flow(flow_id)
     

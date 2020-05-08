@@ -41,6 +41,7 @@ def print_hosts():
         host = [i, device["hostType"], device["hostIp"]]
         host_list.append(host)
     table_header = ["Number", "Type", "IP"]
+    print("Hosts: ")
     print(tabulate(host_list, table_header))
 
 
@@ -63,6 +64,54 @@ def print_devices():
         host = [i, device["type"], device["hostname"], device["managementIpAddress"]]
         devices_list.append(host)
     table_header = ["Number", "Type", "Hostname", "IP"]
+    print("Network devices:")
     print(tabulate(devices_list, table_header))
 
-print("The ticket is:", get_ticket())
+def get_flowId(source, destination):
+    api_url = "https://devnetsbx-netacad-apicem-3.cisco.com/api/v1/flow-analysis"
+    ticket = get_ticket()
+    headers = {
+     "content-type": "application/json",
+     "X-Auth-Token": ticket
+    }
+    body_json = {
+        "destIP": destination,
+        "sourceIP": source
+        }
+    resp = requests.post(api_url,json.dumps(body_json),headers=headers,verify=False)
+    print("Status of /flow-analysis request: ", resp.status_code)
+    flowAnalysisId = ""
+    if resp.status_code != 202 and resp.status_code != 200:
+        
+        raise Exception("Status code does not equal 200. Response text: " + resp.text)
+    else:
+        response_json = resp.json()
+        flowAnalysisId = response_json["response"]["flowAnalysisId"]
+    return flowAnalysisId
+
+def print_flow(source, destination):
+    api_url = "https://devnetsbx-netacad-apicem-3.cisco.com/api/v1/flow-analysis/"
+    api_url += get_flowId(source, destination)
+    ticket = get_ticket()
+    headers = {
+     "content-type": "application/json",
+     "Accept": "application/json",
+     "X-Auth-Token": ticket
+    }
+    resp = requests.get(api_url,headers=headers,verify=False)
+    response_json = resp.json()
+    while response_json["response"]["request"]["status"] != "COMPLETED":
+        resp = requests.get(api_url,headers=headers,verify=False)
+        response_json = resp.json()
+        print("Status of /flow-analysis request: ", resp.status_code)
+        if resp.status_code != 202 and resp.status_code != 200:
+            raise Exception("Status code does not equal 200. Response text: " + resp.text)
+    route = []
+    for node in response_json["response"]["networkElementsInfo"]:
+        route.append(node["ip"])
+    print(f"The route between {source} and {destination} is:")
+    print(route)
+
+
+if __name__ == "__main__":
+    print("The ticket is:", get_ticket())
